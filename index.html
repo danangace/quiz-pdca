@@ -1,0 +1,1906 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDCA Quiz — BCA Muda I Cabang</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red: #C0392B;
+    --red-dark: #922B21;
+    --red-light: #E74C3C;
+    --cream: #FAF7F2;
+    --dark: #1A1A1A;
+    --mid: #4A4A4A;
+    --light: #8A8A8A;
+    --border: #E8E0D5;
+    --correct: #27AE60;
+    --wrong: #C0392B;
+    --unanswered: #F39C12;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--dark);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── NOISE TEXTURE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── SCREENS ── */
+  .screen { display: none; min-height: 100vh; position: relative; z-index: 1; }
+  .screen.active { display: flex; flex-direction: column; }
+
+  /* ══════════════════════════════
+     INTRO SCREEN
+  ══════════════════════════════ */
+  #intro {
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    background: var(--dark);
+  }
+
+  .intro-inner {
+    max-width: 680px;
+    width: 100%;
+    text-align: center;
+    animation: fadeUp 0.8s ease both;
+  }
+
+  .badge {
+    display: inline-block;
+    background: var(--red);
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    border-radius: 2px;
+    margin-bottom: 32px;
+  }
+
+  .intro-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(42px, 7vw, 72px);
+    color: white;
+    line-height: 1.05;
+    margin-bottom: 16px;
+  }
+
+  .intro-title em {
+    font-style: italic;
+    color: var(--red-light);
+  }
+
+  .intro-sub {
+    color: #888;
+    font-size: 15px;
+    font-weight: 300;
+    margin-bottom: 52px;
+    line-height: 1.7;
+  }
+
+  .version-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .version-card {
+    background: #242424;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 28px 24px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    text-align: left;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .version-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--red);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s ease;
+  }
+
+  .version-card:hover::before { transform: scaleX(1); }
+  .version-card:hover { border-color: var(--red); transform: translateY(-2px); }
+
+  .vc-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--red-light);
+    margin-bottom: 10px;
+  }
+
+  .vc-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 24px;
+    color: white;
+    margin-bottom: 8px;
+  }
+
+  .vc-desc {
+    font-size: 13px;
+    color: #666;
+    line-height: 1.6;
+  }
+
+  .vc-count {
+    position: absolute;
+    top: 20px; right: 20px;
+    font-size: 36px;
+    font-family: 'DM Serif Display', serif;
+    color: #333;
+    font-weight: 400;
+  }
+
+  .disclaimer {
+    font-size: 12px;
+    color: #555;
+    line-height: 1.6;
+  }
+
+  /* ══════════════════════════════
+     QUIZ SCREEN
+  ══════════════════════════════ */
+  #quiz { background: var(--cream); }
+
+  .quiz-header {
+    background: var(--dark);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid #2a2a2a;
+  }
+
+  .quiz-brand {
+    font-family: 'DM Serif Display', serif;
+    color: white;
+    font-size: 18px;
+  }
+
+  .quiz-brand span { color: var(--red-light); }
+
+  .quiz-meta {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .progress-text {
+    font-size: 13px;
+    color: #888;
+    font-weight: 500;
+  }
+
+  .progress-text strong { color: white; }
+
+  .timer-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 6px 14px;
+  }
+
+  .timer-icon { font-size: 14px; }
+  #timer-display {
+    font-size: 14px;
+    font-weight: 600;
+    color: white;
+    font-variant-numeric: tabular-nums;
+    min-width: 48px;
+  }
+
+  #timer-display.warning { color: #F39C12; }
+  #timer-display.danger { color: var(--red-light); animation: pulse 1s infinite; }
+
+  /* PROGRESS BAR */
+  .progress-bar-wrap {
+    height: 3px;
+    background: #E8E0D5;
+    position: relative;
+  }
+
+  #progress-bar {
+    height: 100%;
+    background: var(--red);
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+
+  /* QUIZ BODY */
+  .quiz-body {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 48px 24px 120px;
+  }
+
+  .question-block {
+    display: none;
+    animation: fadeUp 0.35s ease both;
+  }
+
+  .question-block.active { display: block; }
+
+  .q-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .q-num {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--red);
+    background: #FBE9E7;
+    padding: 4px 12px;
+    border-radius: 2px;
+  }
+
+  .q-category {
+    font-size: 11px;
+    color: var(--light);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .question-text {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(18px, 2.5vw, 22px);
+    line-height: 1.5;
+    color: var(--dark);
+    margin-bottom: 32px;
+  }
+
+  /* OPTIONS */
+  .options-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+
+  .option-item {
+    position: relative;
+  }
+
+  .option-item input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .option-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px 20px;
+    background: white;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--mid);
+  }
+
+  .option-label:hover {
+    border-color: var(--red);
+    background: #FFF8F7;
+    color: var(--dark);
+  }
+
+  .option-letter {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    border-radius: 50%;
+    background: var(--cream);
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--light);
+    transition: all 0.2s ease;
+    margin-top: 1px;
+  }
+
+  .option-item input:checked + .option-label {
+    border-color: var(--red);
+    background: #FFF0EE;
+    color: var(--dark);
+  }
+
+  .option-item input:checked + .option-label .option-letter {
+    background: var(--red);
+    border-color: var(--red);
+    color: white;
+  }
+
+  /* AFTER SUBMIT: correct/wrong states */
+  .option-label.correct {
+    border-color: var(--correct) !important;
+    background: #F0FFF4 !important;
+    color: var(--dark);
+    pointer-events: none;
+  }
+
+  .option-label.correct .option-letter {
+    background: var(--correct) !important;
+    border-color: var(--correct) !important;
+    color: white !important;
+  }
+
+  .option-label.wrong {
+    border-color: var(--wrong) !important;
+    background: #FFF0EE !important;
+    pointer-events: none;
+  }
+
+  .option-label.wrong .option-letter {
+    background: var(--wrong) !important;
+    border-color: var(--wrong) !important;
+    color: white !important;
+  }
+
+  .option-label.disabled { pointer-events: none; opacity: 0.5; }
+
+  /* QUIZ FOOTER NAV */
+  .quiz-footer {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: white;
+    border-top: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 100;
+    max-width: 100%;
+  }
+
+  .nav-left { display: flex; gap: 12px; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+  }
+
+  .btn-ghost {
+    background: transparent;
+    border: 2px solid var(--border);
+    color: var(--mid);
+  }
+
+  .btn-ghost:hover { border-color: var(--dark); color: var(--dark); }
+
+  .btn-primary {
+    background: var(--red);
+    color: white;
+  }
+
+  .btn-primary:hover { background: var(--red-dark); transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .btn-success {
+    background: var(--correct);
+    color: white;
+  }
+
+  .btn-success:hover { background: #219A52; transform: translateY(-1px); }
+
+  .answered-count {
+    font-size: 13px;
+    color: var(--light);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .answered-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--correct);
+    display: inline-block;
+  }
+
+  /* ══════════════════════════════
+     RESULTS SCREEN
+  ══════════════════════════════ */
+  #results { background: var(--dark); }
+
+  .results-header {
+    background: var(--red);
+    padding: 48px 32px 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .results-header::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 240px; height: 240px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+  }
+
+  .results-header::after {
+    content: '';
+    position: absolute;
+    bottom: -80px; left: -40px;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.08);
+  }
+
+  .results-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 16px;
+    position: relative; z-index: 1;
+  }
+
+  .score-big {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(64px, 12vw, 96px);
+    color: white;
+    line-height: 1;
+    position: relative; z-index: 1;
+  }
+
+  .score-big span { font-size: 0.4em; opacity: 0.6; vertical-align: super; }
+
+  .score-grade {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: rgba(255,255,255,0.85);
+    margin-top: 8px;
+    font-style: italic;
+    position: relative; z-index: 1;
+  }
+
+  .results-body {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 40px 24px;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 48px;
+    animation: fadeUp 0.5s 0.2s ease both;
+  }
+
+  .stat-card {
+    background: #1E1E1E;
+    border: 1px solid #2A2A2A;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .stat-num {
+    font-family: 'DM Serif Display', serif;
+    font-size: 36px;
+    color: white;
+    margin-bottom: 4px;
+  }
+
+  .stat-label {
+    font-size: 12px;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .stat-card.green .stat-num { color: var(--correct); }
+  .stat-card.red .stat-num { color: var(--red-light); }
+
+  /* REVIEW SECTION */
+  .review-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 26px;
+    color: white;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #2A2A2A;
+    animation: fadeUp 0.5s 0.3s ease both;
+  }
+
+  .review-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    animation: fadeUp 0.5s 0.4s ease both;
+  }
+
+  .review-item {
+    background: #1E1E1E;
+    border: 1px solid #2A2A2A;
+    border-radius: 8px;
+    padding: 20px 24px;
+    border-left: 4px solid transparent;
+    transition: all 0.2s ease;
+  }
+
+  .review-item.correct { border-left-color: var(--correct); }
+  .review-item.wrong { border-left-color: var(--wrong); }
+  .review-item.unanswered { border-left-color: var(--unanswered); }
+
+  .review-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+    gap: 12px;
+  }
+
+  .review-q-num {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #555;
+    white-space: nowrap;
+  }
+
+  .review-status {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+
+  .review-item.correct .review-status { background: rgba(39,174,96,0.15); color: var(--correct); }
+  .review-item.wrong .review-status { background: rgba(192,57,43,0.15); color: var(--red-light); }
+  .review-item.unanswered .review-status { background: rgba(243,156,18,0.15); color: var(--unanswered); }
+
+  .review-q-text {
+    font-size: 14px;
+    color: #AAA;
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+
+  .review-answers {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .review-answer-tag {
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+
+  .tag-user { background: #2A2A2A; color: #888; }
+  .tag-user.correct { background: rgba(39,174,96,0.15); color: var(--correct); }
+  .tag-user.wrong { background: rgba(192,57,43,0.15); color: var(--red-light); }
+  .tag-correct-ans { background: rgba(39,174,96,0.12); color: var(--correct); }
+
+  .results-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 40px;
+    padding-top: 32px;
+    border-top: 1px solid #2A2A2A;
+    flex-wrap: wrap;
+    animation: fadeUp 0.5s 0.5s ease both;
+  }
+
+  /* ══════════════════════════════
+     NAVIGATOR PANEL
+  ══════════════════════════════ */
+  .nav-panel-toggle {
+    position: fixed;
+    right: 24px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 200;
+  }
+
+  .toggle-btn {
+    width: 44px;
+    height: 44px;
+    background: var(--dark);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 18px;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  }
+
+  .toggle-btn:hover { background: var(--red); transform: scale(1.05); }
+
+  .nav-panel {
+    position: fixed;
+    right: -280px;
+    top: 60px;
+    bottom: 80px;
+    width: 260px;
+    background: var(--dark);
+    border-left: 1px solid #2A2A2A;
+    z-index: 150;
+    padding: 20px;
+    overflow-y: auto;
+    transition: right 0.3s ease;
+    display: none;
+  }
+
+  .nav-panel.open { right: 0; }
+
+  .nav-panel-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #555;
+    margin-bottom: 16px;
+  }
+
+  .nav-dots {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+  }
+
+  .nav-dot {
+    aspect-ratio: 1;
+    border-radius: 4px;
+    background: #1E1E1E;
+    border: 1px solid #2A2A2A;
+    cursor: pointer;
+    font-size: 11px;
+    color: #555;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    font-weight: 600;
+  }
+
+  .nav-dot:hover { border-color: var(--red); color: var(--red); }
+  .nav-dot.current { background: var(--red); border-color: var(--red); color: white; }
+  .nav-dot.answered { background: #1E3A2A; border-color: var(--correct); color: var(--correct); }
+  .nav-dot.answered.current { background: var(--correct); color: white; }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* ── SCENARIO QUESTION TABLE STYLES ── */
+  .question-text table { width:100%; border-collapse:collapse; font-size:13px; margin:10px 0; }
+  .question-text th { background:#f0ebe3; padding:7px 10px; text-align:left; border:1px solid #ddd; font-weight:600; font-size:12px; }
+  .question-text td { padding:6px 10px; border:1px solid #e8e0d5; font-size:13px; line-height:1.5; }
+  .question-text tr:nth-child(even) td { background:#fdf9f5; }
+  .question-text div { margin:6px 0; }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #CCC; border-radius: 3px; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 600px) {
+    .version-cards { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: 1fr; }
+    .quiz-header { padding: 12px 16px; }
+    .quiz-body { padding: 32px 16px 100px; }
+    .quiz-footer { padding: 12px 16px; }
+    .nav-panel { display: none !important; }
+    .nav-panel-toggle { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════ INTRO SCREEN ══════════ -->
+<div id="intro" class="screen active">
+  <div class="intro-inner">
+    <div class="badge">BCA · PDCA Business Process Improvement</div>
+    <h1 class="intro-title">Muda I<br><em>Cabang</em><br>Quiz</h1>
+    <p class="intro-sub">
+      Uji pemahaman kamu tentang metodologi PDCA,<br>
+      7 QC Tools, dan delapan langkah improvement.<br>
+      Jawaban hanya terungkap setelah kamu submit.
+    </p>
+    <div class="version-cards">
+      <div class="version-card" onclick="startQuiz('medium')">
+        <div class="vc-count">50</div>
+        <div class="vc-label">Versi 1</div>
+        <div class="vc-title">Medium</div>
+        <div class="vc-desc">Konsep dasar & pemahaman umum PDCA, tools, dan langkah-langkah improvement.</div>
+      </div>
+      <div class="version-card" onclick="startQuiz('hard')">
+        <div class="vc-count">50</div>
+        <div class="vc-label">Versi 2</div>
+        <div class="vc-title">Hard</div>
+        <div class="vc-desc">Skenario baru, data tabel, hitung PCE/PLT, identifikasi waste, analisis proses fiktif. Uji penerapan konsep, bukan hafalan.</div>
+      </div>
+    </div>
+    <p class="disclaimer">⏱ Timer akan berjalan saat kuis dimulai &nbsp;·&nbsp; Jawaban muncul setelah submit &nbsp;·&nbsp; Gunakan navigator untuk loncat antar soal</p>
+  </div>
+</div>
+
+<!-- ══════════ QUIZ SCREEN ══════════ -->
+<div id="quiz" class="screen">
+  <header class="quiz-header">
+    <div class="quiz-brand">PDCA <span>Quiz</span></div>
+    <div class="quiz-meta">
+      <div class="progress-text">Soal <strong id="current-q-display">1</strong> / <strong id="total-q-display">50</strong></div>
+      <div class="timer-wrap">
+        <span class="timer-icon">⏱</span>
+        <div id="timer-display">00:00</div>
+      </div>
+    </div>
+  </header>
+
+  <div class="progress-bar-wrap">
+    <div id="progress-bar"></div>
+  </div>
+
+  <div class="quiz-body" id="quiz-body">
+    <!-- Questions injected here -->
+  </div>
+
+  <!-- Navigator toggle -->
+  <div class="nav-panel-toggle" id="nav-toggle-wrap">
+    <button class="toggle-btn" onclick="toggleNavPanel()" title="Navigator Soal">☰</button>
+  </div>
+
+  <div class="nav-panel" id="nav-panel">
+    <div class="nav-panel-title">Navigator Soal</div>
+    <div class="nav-dots" id="nav-dots"></div>
+  </div>
+
+  <footer class="quiz-footer">
+    <div class="nav-left">
+      <button class="btn btn-ghost" onclick="prevQ()">← Prev</button>
+      <button class="btn btn-ghost" onclick="nextQ()">Next →</button>
+    </div>
+    <div class="answered-count">
+      <span class="answered-dot"></span>
+      <span id="answered-display">0</span> dijawab
+    </div>
+    <button class="btn btn-success" id="submit-btn" onclick="submitQuiz()">Submit Quiz</button>
+  </footer>
+</div>
+
+<!-- ══════════ RESULTS SCREEN ══════════ -->
+<div id="results" class="screen">
+  <div class="results-header">
+    <div class="results-label">Hasil Kuis</div>
+    <div class="score-big" id="score-big">—<span>%</span></div>
+    <div class="score-grade" id="score-grade">—</div>
+  </div>
+
+  <div class="results-body">
+    <div class="stats-grid">
+      <div class="stat-card green">
+        <div class="stat-num" id="stat-correct">0</div>
+        <div class="stat-label">Benar</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-num" id="stat-wrong">0</div>
+        <div class="stat-label">Salah</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="stat-time">0:00</div>
+        <div class="stat-label">Waktu</div>
+      </div>
+    </div>
+
+    <div class="review-title">Review Jawaban</div>
+    <div class="review-list" id="review-list"></div>
+
+    <div class="results-actions">
+      <button class="btn btn-primary" onclick="restartQuiz()">↺ Coba Lagi</button>
+      <button class="btn btn-ghost" style="color:white;border-color:#333" onclick="goHome()">← Pilih Versi Lain</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────
+// ENCODED ANSWER KEY (base64 per question)
+// Each entry: btoa(answer_letter)
+// ─────────────────────────────────────────
+
+const MEDIUM_QUESTIONS = [
+  { q:"Apa kepanjangan dari PDCA dalam konteks siklus Deming?", opts:["Plan-Do-Check-Act","Problem-Define-Control-Act","Plan-Define-Check-Analyze","Process-Data-Control-Analyze"], a:btoa("A"), cat:"PDCA Dasar" },
+  { q:"Siapa yang menyatakan 'Having no problems is the biggest problem of all' dan dikenal sebagai Bapak Toyota Production System?", opts:["W. Edwards Deming","Kaoru Ishikawa","Taiichi Ohno","Sakichi Toyoda"], a:btoa("C"), cat:"PDCA Dasar" },
+  { q:"Dalam metodologi PDCA, fase PLAN mencakup langkah-langkah berapa?", opts:["Langkah 1-2","Langkah 1-4","Langkah 5-6","Langkah 7-8"], a:btoa("B"), cat:"PDCA Dasar" },
+  { q:"PROBLEM dalam konteks PDCA didefinisikan sebagai...", opts:["Kegagalan proses yang tidak dapat diperbaiki","GAP antara keadaan AKTUAL dan keadaan IDEAL","Perbedaan pendapat antara manajemen dan tim","Kekurangan sumber daya dalam organisasi"], a:btoa("B"), cat:"PDCA Dasar" },
+  { q:"Metodologi mana yang digunakan ketika solusi masih UNKNOWN dan proses/produk sudah EXISTING?", opts:["Design Thinking","Agile/Scrum","Lean Six Sigma / PDCA","Project Management"], a:btoa("C"), cat:"Metodologi" },
+  { q:"Berapa jumlah alat dalam 7 QC Tools yang juga dikenal sebagai 'The Old Seven'?", opts:["5","6","7","8"], a:btoa("C"), cat:"7 QC Tools" },
+  { q:"Alat QC mana yang digunakan untuk memisahkan data dari berbagai sumber sehingga pola dapat terlihat?", opts:["Check Sheet","Stratifikasi","Histogram","Pareto Chart"], a:btoa("B"), cat:"7 QC Tools" },
+  { q:"Dalam konsep Pareto, berapa persen dari sebab/cause yang menyebabkan 80% dari akibat/effect?", opts:["10%","20%","30%","40%"], a:btoa("B"), cat:"Pareto" },
+  { q:"Scatter Diagram digunakan untuk menggambarkan...", opts:["Distribusi frekuensi data","Hubungan sebab-akibat dari sebuah masalah","Hubungan atau korelasi antara dua variabel","Perbandingan data dalam interval waktu tertentu"], a:btoa("C"), cat:"7 QC Tools" },
+  { q:"Jika nilai koefisien korelasi |r| > 0.65, maka hubungan tersebut dianggap...", opts:["Tidak signifikan","Lemah","Practically significant","Perlu penelitian lebih lanjut"], a:btoa("C"), cat:"Scatter Diagram" },
+  { q:"Check Sheet adalah lembar terstruktur sebagai alat generik. Apa tujuan utama Check Sheet?", opts:["Menampilkan distribusi data","Mengumpulkan, mengeksplorasi, dan menganalisis data","Menunjukkan hubungan sebab-akibat","Menentukan akar penyebab masalah"], a:btoa("B"), cat:"Check Sheet" },
+  { q:"Histogram digunakan terutama ketika...", opts:["Data bersifat kualitatif","Ingin melihat korelasi dua variabel","Data numerik banyak dan ingin melihat sebaran","Ingin menghitung frekuensi kejadian"], a:btoa("C"), cat:"Histogram" },
+  { q:"Bentuk histogram yang menunjukkan dua puncak (bimodal) mungkin disebabkan oleh...", opts:["Data terdistribusi normal","Adanya batasan yang tidak boleh dilampaui","Kumpulan dua data dengan nilai rata-rata berbeda jauh","Metode pengukuran yang tidak tepat"], a:btoa("C"), cat:"Histogram" },
+  { q:"Kaoru Ishikawa (1915-1989) dikenal sebagai pencipta diagram apa?", opts:["Pareto Chart","Scatter Diagram","Fishbone/Ishikawa Diagram","Control Chart"], a:btoa("C"), cat:"Fishbone" },
+  { q:"Cause-Effect Diagram memiliki nama lain, KECUALI...", opts:["Fishbone Diagram","Ishikawa Diagram","Diagram Tulang Ikan","Process Flow Diagram"], a:btoa("D"), cat:"Fishbone" },
+  { q:"Voice of Customer (VoC) mendefinisikan...", opts:["KPI dan target bisnis","Harapan dan kebutuhan karyawan","Kebutuhan dan keinginan customer serta umpan balik","Metrik proses yang mengukur keadaan saat ini"], a:btoa("C"), cat:"Voice of X" },
+  { q:"Contoh dari Voice of Business (VoB) adalah...", opts:["Survei kepuasan pelanggan","Survei karyawan","Key Performance Indicator (KPI)","Service Level Agreement"], a:btoa("C"), cat:"Voice of X" },
+  { q:"Voice of Process (VoP) didapat dari...", opts:["Wawancara dengan customer","Metrik proses yang merupakan indikator keadaan proses saat ini","Diskusi dengan manajemen senior","Laporan keuangan perusahaan"], a:btoa("B"), cat:"Voice of X" },
+  { q:"Project Charter adalah sebuah DOKUMEN HIDUP tentang...", opts:["Laporan keuangan project","Alasan project dijalankan, fokus, dan tujuannya","Daftar tugas harian tim project","Anggaran yang dibutuhkan project"], a:btoa("B"), cat:"Project Charter" },
+  { q:"Kriteria SMART dalam penentuan target terdiri dari...", opts:["Specific, Measurable, Attainable, Relevant, Time Bound","Simple, Manageable, Accurate, Real, Timely","Strategic, Meaningful, Aligned, Realistic, Trackable","Systematic, Measurable, Actionable, Result-oriented, Timed"], a:btoa("A"), cat:"SMART Target" },
+  { q:"Baseline dalam konteks PDCA adalah...", opts:["Target yang ingin dicapai","Titik awal dari kondisi (as-is) saat ini","Standar baru yang telah ditetapkan","Rata-rata pencapaian tahun lalu"], a:btoa("B"), cat:"Baseline & Target" },
+  { q:"Problem Statement yang baik harus mencakup komponen WHAT, WHEN, SCOPE, dan...", opts:["WHO","IMPACT","HOW","WHY"], a:btoa("B"), cat:"Project Charter" },
+  { q:"Risiko jika tidak ada Project Charter adalah, KECUALI...", opts:["Kehilangan fokus","Duplikasi project","Peningkatan produktivitas tim","Risiko molornya project"], a:btoa("C"), cat:"Project Charter" },
+  { q:"Tujuan utama dari Process Mapping adalah untuk memahami proses saat ini (as-is) dan mencari...", opts:["Standard Operating Procedure baru","Opportunity for Improvement (OFI)","Tim yang bertanggung jawab atas proses","Biaya yang dikeluarkan dalam proses"], a:btoa("B"), cat:"Process Mapping" },
+  { q:"Process Lead Time (PLT) dihitung dengan rumus...", opts:["VA + NVA","VA x PLT","VA + VE + NVA","NVA / PLT"], a:btoa("C"), cat:"Value Analysis" },
+  { q:"Process Cycle Efficiency (PCE) dihitung dengan rumus...", opts:["PLT / VA","VA / PLT","NVA / PLT","VE / PLT"], a:btoa("B"), cat:"Value Analysis" },
+  { q:"Value-Added Activity adalah aktivitas yang...", opts:["Tidak merubah nilai tapi masih diperlukan proses lain","Tidak dibutuhkan dan tidak dibayar pelanggan","Merubah bentuk/fungsi/nilai dan dibayar pelanggan","Dilakukan untuk memenuhi regulasi"], a:btoa("C"), cat:"Value & Waste" },
+  { q:"Apa kepanjangan dari akronim 8 Waste 'DOWNTIME'?", opts:["D=Defect, O=Overproduction, W=Waiting, N=Non-utilized Talent, T=Transportation, I=Inventory, M=Motion, E=Extra-processing","D=Delay, O=Overwork, W=Waste, N=Negligence, T=Time, I=Inefficiency, M=Mismanagement, E=Error","D=Defect, O=Output, W=Work, N=Need, T=Time, I=Input, M=Method, E=Evaluation","D=Disorder, O=Overtime, W=Wait, N=Neglect, T=Task, I=Idle, M=Mistake, E=Extra"], a:btoa("A"), cat:"8 Waste" },
+  { q:"Brainstorming technique digunakan untuk mengumpulkan semua...", opts:["Root cause yang sudah teridentifikasi","Solusi terbaik yang paling efisien","Faktor potensial yang mungkin berdampak pada masalah","Data historis yang relevan"], a:btoa("C"), cat:"Brainstorming" },
+  { q:"Five Why Analysis digunakan bersamaan dengan Fishbone Diagram untuk...", opts:["Menentukan target project","Menemukan akar penyebab masalah","Membuat Process Map","Mengevaluasi hasil perbaikan"], a:btoa("B"), cat:"Five Why" },
+  { q:"SCAMPER adalah teknik brainstorming kreatif yang terdiri dari huruf-huruf yang melambangkan...", opts:["Substitute, Combine, Adapt, Modify, Put to other use, Eliminate, Reverse/Rearrange","Simplify, Connect, Analyze, Measure, Plan, Execute, Review","Start, Create, Analyze, Monitor, Plan, Evaluate, Report","Select, Compare, Apply, Make, Produce, Examine, Revise"], a:btoa("A"), cat:"SCAMPER" },
+  { q:"Dalam tahap Solution Prioritization, alat yang digunakan untuk mengevaluasi dan memilih solusi terbaik adalah...", opts:["5W2H Matrix","Benefit-Effort Matrix","SMART Matrix","RACI Matrix"], a:btoa("B"), cat:"Solution Plan" },
+  { q:"5W2H dalam Solution Plan terdiri dari WHAT, WHY, WHERE, WHEN, WHO, HOW, dan...", opts:["WHOSE","HOW MANY","HOW MUCH","HOW LONG"], a:btoa("C"), cat:"5W2H" },
+  { q:"Piloting adalah implementasi solusi pada...", opts:["Seluruh organisasi sekaligus","Skala terbatas","Tim manajemen saja","Cabang utama terlebih dahulu"], a:btoa("B"), cat:"Piloting" },
+  { q:"Langkah evaluasi hasil perbaikan bertujuan untuk membandingkan hasil dan target dengan melihat kinerja...", opts:["Sebelum vs. sesudah improvement","Tahun ini vs. tahun lalu","Cabang A vs. Cabang B","Tim A vs. Tim B"], a:btoa("A"), cat:"Evaluasi" },
+  { q:"Tujuan dibuat Standardisasi adalah, KECUALI...", opts:["Menghindari salah pengertian dan persepsi","Mempermudah proses dan konsistensi","Meningkatkan biaya operasional","Mempermudah pengalihan tugas kepada karyawan pengganti"], a:btoa("C"), cat:"Standardisasi" },
+  { q:"Pada Step 8 (Perbaikan Selanjutnya), apa yang dilakukan jika improvement sebelumnya sudah berhasil?", opts:["Menghentikan semua project improvement","Menentukan masalah (Y) baru untuk project improvement berikutnya","Mempertahankan kondisi yang ada tanpa perubahan","Mengganti seluruh tim project"], a:btoa("B"), cat:"Step 8" },
+  { q:"Grafik garis digunakan untuk...", opts:["Membandingkan proporsi data terhadap keseluruhan","Membandingkan nilai tinggi-rendah data berurutan","Membandingkan data dalam interval waktu tertentu","Menampilkan distribusi frekuensi"], a:btoa("C"), cat:"Grafik" },
+  { q:"Dalam Control Chart, kondisi terkendali ditandai dengan...", opts:["Titik di luar batas kendali","Titik di dalam batas kendali meskipun gerakannya tidak menentu","Semua titik berada di garis center","Tidak ada variasi sama sekali"], a:btoa("B"), cat:"Control Chart" },
+  { q:"UCL dalam Control Chart merupakan singkatan dari...", opts:["Upper Capability Level","Upper Control Limit","Universal Control Line","Unit Cost Limit"], a:btoa("B"), cat:"Control Chart" },
+  { q:"Dalam Pareto Chart, jika pengelompokkan menunjukkan semua kategori hampir sama dominan, ini disebut...", opts:["Strong Pareto Effect","Weak Pareto Effect","Normal Pareto Effect","Balanced Pareto Effect"], a:btoa("B"), cat:"Pareto" },
+  { q:"Ketika kategori 'Others' mendominasi Pareto Chart, respon yang tepat adalah...", opts:["Fokus pada kategori Others","Cari cara pengkategorian lain","Evaluasi apakah 'Others' masih bisa dipecah menjadi beberapa faktor","Mengabaikan kategori Others"], a:btoa("C"), cat:"Pareto" },
+  { q:"CUSTOMER dalam konteks PDCA didefinisikan sebagai pihak yang...", opts:["Membayar biaya layanan","Menerima OUTPUT yang kita buat atau ciptakan","Memberikan feedback negatif","Menggunakan produk secara langsung"], a:btoa("B"), cat:"Customer" },
+  { q:"Contoh customer INTERNAL adalah, KECUALI...", opts:["Proses selanjutnya","Leadership/Manajemen","End customer","Karyawan"], a:btoa("C"), cat:"Customer" },
+  { q:"Ketika solusi sudah KNOWN, metodologi yang tepat digunakan adalah...", opts:["PDCA","Lean Six Sigma","Design Thinking","Project Management/Agile/Scrum"], a:btoa("D"), cat:"Metodologi" },
+  { q:"Design for Six Sigma (DFSS) digunakan ketika...", opts:["Solusi sudah diketahui dan proses sudah ada","Solusi tidak diketahui, proses tidak ada, fokus pada kualitas tinggi","Solusi sudah ada dan fokus pada kebutuhan pengguna","Proses sudah ada dan ingin ditingkatkan efisiensinya"], a:btoa("B"), cat:"Metodologi" },
+  { q:"Berdasarkan World Class Cycle Efficiency Benchmarks, Business Processes (Transactional) memiliki High End PCE sebesar...", opts:["20%","35%","50%","80%"], a:btoa("C"), cat:"PCE" },
+  { q:"7 Kriteria judul project improvement menyatakan bahwa penyelesaian project harus dalam waktu...", opts:["Minimal 6 bulan","Maksimal 3 bulan","Minimal 1 tahun","Maksimal 1 bulan"], a:btoa("B"), cat:"Step 1" },
+  { q:"Dalam pemilihan masalah Y, masalah yang dipilih harus bersifat...", opts:["Umum dan mencakup banyak aspek","Spesifik dan tunggal","Berkaitan dengan seluruh organisasi","Melibatkan banyak departemen"], a:btoa("B"), cat:"Step 1" },
+  { q:"The Purpose of Measurement dalam PDCA adalah bahwa measurement mendukung...", opts:["Langsung tercapainya target","Pemahaman analisis yang kemudian mendukung solusi yang tepat","Implementasi solusi tanpa analisis lebih lanjut","Standardisasi proses yang sudah berjalan"], a:btoa("B"), cat:"Measurement" },
+];
+
+const HARD_QUESTIONS = [
+
+  // ═══════════════════════════════════════════
+  // BLOK 1: HITUNG & INTERPRETASI DATA (10 soal)
+  // ═══════════════════════════════════════════
+
+  {
+    q: `<strong>📊 Skenario PCE:</strong><br>Proses pengajuan kredit di Cabang Maju memiliki data berikut:<br><br>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin:8px 0">
+      <tr style="background:#f5f0eb"><th style="padding:6px 10px;text-align:left;border:1px solid #ddd">Aktivitas</th><th style="padding:6px 10px;border:1px solid #ddd">Menit</th><th style="padding:6px 10px;border:1px solid #ddd">Tipe</th></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">Verifikasi dokumen nasabah</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">45</td><td style="padding:6px 10px;border:1px solid #ddd">VA</td></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">Analisis kelayakan kredit</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">90</td><td style="padding:6px 10px;border:1px solid #ddd">VA</td></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">Menunggu approval atasan</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">480</td><td style="padding:6px 10px;border:1px solid #ddd">NVA</td></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">Pencatatan ke sistem</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">30</td><td style="padding:6px 10px;border:1px solid #ddd">VE</td></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">Menunggu dokumen dari nasabah</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">240</td><td style="padding:6px 10px;border:1px solid #ddd">NVA</td></tr>
+    </table>
+    Berapa PCE proses ini, dan bagaimana statusnya dibanding World Class Business Processes (Transactional)?`,
+    opts:[
+      "PCE = 15.3% — di bawah Typical (10%), sudah World Class",
+      "PCE = 21.7% — di atas Typical (10%) tapi belum World Class (50%)",
+      "PCE = 30.5% — sudah mencapai World Class",
+      "PCE = 46.2% — mendekati World Class"
+    ], a:btoa("B"), cat:"PCE Calculation"
+  },
+
+  {
+    q: `<strong>📊 Skenario Scatter Diagram:</strong><br>
+    Tim analis mengumpulkan data jumlah training yang diterima CS (X) dan skor kepuasan nasabah (Y) di 6 cabang:<br><br>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin:8px 0">
+      <tr style="background:#f5f0eb"><th style="padding:6px 10px;border:1px solid #ddd">Cabang</th><th style="padding:6px 10px;border:1px solid #ddd">Training (X)</th><th style="padding:6px 10px;border:1px solid #ddd">Skor Kepuasan (Y)</th></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">A</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">2</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">62</td></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">B</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">4</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">70</td></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">C</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">6</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">78</td></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">D</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">8</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">85</td></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">E</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">10</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">91</td></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">F</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">3</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">65</td></tr>
+    </table>
+    Kesimpulan yang paling tepat dari data ini adalah...`,
+    opts:[
+      "Tidak ada hubungan antara jumlah training dan kepuasan nasabah",
+      "Ada korelasi negatif — semakin banyak training, skor turun",
+      "Ada korelasi positif kuat — semakin banyak training, skor kepuasan cenderung naik, dan hubungan ini practically significant",
+      "Data tidak cukup untuk membuat kesimpulan apapun"
+    ], a:btoa("C"), cat:"Scatter Diagram"
+  },
+
+  {
+    q: `<strong>📊 Skenario Pareto — Tabel Frekuensi Komplain:</strong><br>
+    Data komplain nasabah di Cabang Sejahtera selama 3 bulan terakhir:<br><br>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin:8px 0">
+      <tr style="background:#f5f0eb"><th style="padding:6px 10px;text-align:left;border:1px solid #ddd">Kategori Komplain</th><th style="padding:6px 10px;border:1px solid #ddd">Frekuensi</th></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">Antrean teller terlalu panjang</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">310</td></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">ATM sering offline</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">245</td></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">CS kurang responsif</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">48</td></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">Salah informasi produk</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">22</td></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">Lain-lain</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">15</td></tr>
+    </table>
+    Berdasarkan prinsip Pareto 80/20, fokus improvement yang paling tepat adalah...`,
+    opts:[
+      "Menyelesaikan semua 5 kategori secara bersamaan",
+      "Fokus pada 'CS kurang responsif' karena paling mudah diperbaiki",
+      "Fokus pada 'Antrean teller terlalu panjang' dan 'ATM sering offline' — keduanya menyumbang ~86% dari total komplain",
+      "Fokus pada kategori 'Lain-lain' karena belum terdefinisi jelas"
+    ], a:btoa("C"), cat:"Pareto Analysis"
+  },
+
+  {
+    q: `<strong>📊 Skenario Check Sheet — Data Mingguan:</strong><br>
+    Berikut check sheet frekuensi error input data nasabah selama 4 minggu:<br><br>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin:8px 0">
+      <tr style="background:#f5f0eb"><th style="padding:6px 10px;text-align:left;border:1px solid #ddd">Tipe Error</th><th style="padding:6px 10px;border:1px solid #ddd">W1</th><th style="padding:6px 10px;border:1px solid #ddd">W2</th><th style="padding:6px 10px;border:1px solid #ddd">W3</th><th style="padding:6px 10px;border:1px solid #ddd">W4</th><th style="padding:6px 10px;border:1px solid #ddd">Total</th></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">Salah nama</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">3</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">2</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">4</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">3</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">12</td></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">Salah nomor rekening</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">8</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">11</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">9</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">12</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">40</td></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">Salah tanggal lahir</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">1</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">2</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">1</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">1</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">5</td></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">Salah alamat</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">2</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">1</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">2</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">0</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">5</td></tr>
+    </table>
+    Jika tim ingin membuat Pareto Chart dari data ini, kategori yang akan berada di posisi PERTAMA (paling kiri/dominan) adalah...`,
+    opts:[
+      "Salah nama — frekuensi 12",
+      "Salah nomor rekening — frekuensi 40",
+      "Salah tanggal lahir — frekuensi 5",
+      "Salah alamat — frekuensi 5"
+    ], a:btoa("B"), cat:"Check Sheet & Pareto"
+  },
+
+  {
+    q: `<strong>📊 Skenario Histogram:</strong><br>
+    Data waktu tunggu nasabah (menit) di loket CS selama 1 bulan menunjukkan pola seperti ini:<br><br>
+    <div style="background:#f9f5f0;border:1px solid #ddd;border-radius:6px;padding:12px;font-size:13px;font-family:monospace">
+    1–5 menit  : ██████████████ (14 nasabah)<br>
+    6–10 menit : ████████████████████ (20 nasabah)<br>
+    11–15 menit: ██████████████████████████ (26 nasabah)<br>
+    16–20 menit: █████████████████████████████ (29 nasabah)<br>
+    21–25 menit: ████████████████ (16 nasabah)<br>
+    26–30 menit: ████████ (8 nasabah)<br>
+    31+ menit  : ████ (4 nasabah)
+    </div><br>
+    Bentuk distribusi histogram ini paling tepat digambarkan sebagai...`,
+    opts:[
+      "Distribusi Normal (simetris, berbentuk lonceng)",
+      "Distribusi Bimodal (dua puncak)",
+      "Distribusi Condong Kiri / Skewed Left (ekor panjang di kiri)",
+      "Distribusi Condong Kanan / Skewed Right (ekor panjang di kanan)"
+    ], a:btoa("D"), cat:"Histogram Interpretation"
+  },
+
+  {
+    q: `<strong>📊 Skenario Perhitungan PLT & PCE:</strong><br>
+    Proses pembukaan rekening baru di Cabang Nusa terdiri dari aktivitas berikut:<br><br>
+    <div style="background:#f9f5f0;border:1px solid #ddd;border-radius:6px;padding:12px;font-size:13px">
+    • Nasabah mengisi formulir: <strong>15 menit (VA)</strong><br>
+    • CS memverifikasi identitas: <strong>10 menit (VA)</strong><br>
+    • Menunggu sistem online: <strong>25 menit (NVA)</strong><br>
+    • Input data ke core banking: <strong>8 menit (VE)</strong><br>
+    • Menunggu approval supervisor: <strong>30 menit (NVA)</strong><br>
+    • Cetak kartu & serahkan ke nasabah: <strong>5 menit (VA)</strong>
+    </div><br>
+    Berapa PLT dan PCE proses ini?`,
+    opts:[
+      "PLT = 93 menit, PCE = 32.3%",
+      "PLT = 93 menit, PCE = 16.1%",
+      "PLT = 68 menit, PCE = 44.1%",
+      "PLT = 93 menit, PCE = 8.6%"
+    ], a:btoa("A"), cat:"PCE Calculation"
+  },
+
+  {
+    q: `<strong>📊 Skenario Stratifikasi Data:</strong><br>
+    Total komplain ATM di Wilayah Barat = 1.200 kasus/bulan. Setelah dilakukan stratifikasi berdasarkan tipe ATM:<br><br>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin:8px 0">
+      <tr style="background:#f5f0eb"><th style="padding:6px 10px;text-align:left;border:1px solid #ddd">Tipe ATM</th><th style="padding:6px 10px;border:1px solid #ddd">Komplain/bulan</th></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">ATM Dalam Gedung</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">180</td></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">ATM Drive-Thru</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">85</td></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">ATM Outdoor Stand-alone</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">935</td></tr>
+    </table>
+    Insight utama yang dapat diambil dari hasil stratifikasi ini adalah...`,
+    opts:[
+      "Semua tipe ATM memiliki masalah yang sama, perlu perbaikan menyeluruh",
+      "ATM Outdoor Stand-alone menjadi prioritas utama karena menyumbang ~78% dari total komplain",
+      "ATM Drive-Thru paling aman karena frekuensi terendah",
+      "Data ini tidak cukup untuk menentukan prioritas"
+    ], a:btoa("B"), cat:"Stratifikasi"
+  },
+
+  {
+    q: `<strong>📊 Skenario Control Chart:</strong><br>
+    Control Chart proses waktu respon CS menunjukkan data berikut selama 2 minggu:<br><br>
+    <div style="background:#f9f5f0;border:1px solid #ddd;border-radius:6px;padding:12px;font-size:13px;font-family:monospace">
+    UCL = 15 menit<br>
+    CL  = 8 menit<br>
+    LCL = 1 menit<br><br>
+    Data harian: 7, 9, 8, 6, 10, 8, 7, <span style="color:#C0392B;font-weight:bold">18</span>, 9, 8, 7, 6, 9, 8
+    </div><br>
+    Kesimpulan yang paling tepat berdasarkan Control Chart ini adalah...`,
+    opts:[
+      "Semua titik dalam kondisi terkendali, proses berjalan normal",
+      "Ada 1 titik (hari ke-8 = 18 menit) berada di atas UCL — kondisi tidak terkendali, perlu investigasi penyebab khusus",
+      "Proses ini tidak stabil karena nilai bervariasi setiap hari",
+      "LCL terlalu rendah, perlu disesuaikan"
+    ], a:btoa("B"), cat:"Control Chart"
+  },
+
+  {
+    q: `<strong>📊 Skenario Before-After Improvement:</strong><br>
+    Berikut data sebelum dan sesudah implementasi perbaikan proses verifikasi dokumen:<br><br>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin:8px 0">
+      <tr style="background:#f5f0eb"><th style="padding:6px 10px;text-align:left;border:1px solid #ddd">Metrik</th><th style="padding:6px 10px;border:1px solid #ddd">Before</th><th style="padding:6px 10px;border:1px solid #ddd">After</th></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">Waktu rata-rata proses</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">45 menit</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">28 menit</td></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">Tingkat error dokumen</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">12%</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">3%</td></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">Kepuasan nasabah</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">72%</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">89%</td></tr>
+    </table>
+    Berapa persen peningkatan kecepatan proses (% improvement waktu proses)?`,
+    opts:[
+      "17 menit lebih cepat (~27.6% lebih lambat dari target)",
+      "37.8% lebih cepat",
+      "62.2% lebih cepat",
+      "17% lebih cepat"
+    ], a:btoa("B"), cat:"Evaluasi Improvement"
+  },
+
+  {
+    q: `<strong>📊 Skenario Korelasi & Interpretasi:</strong><br>
+    Tim HR menganalisis hubungan antara jumlah hari absensi karyawan (X) dan jumlah error transaksi per bulan (Y). Hasil korelasi Pearson = <strong>+0.71</strong>.<br><br>
+    Pernyataan mana yang PALING TEPAT berdasarkan hasil ini?`,
+    opts:[
+      "Tidak ada hubungan bermakna antara absensi dan error transaksi",
+      "Ada korelasi negatif kuat — semakin banyak absensi, semakin sedikit error",
+      "Ada korelasi positif yang practically significant — absensi tinggi cenderung berkaitan dengan error transaksi yang lebih banyak, dan ini layak untuk diinvestigasi lebih lanjut",
+      "Korelasi 0.71 terlalu lemah untuk dijadikan dasar analisis"
+    ], a:btoa("C"), cat:"Scatter Diagram"
+  },
+
+  // ═══════════════════════════════════════════
+  // BLOK 2: SKENARIO PROSES FIKTIF — WASTE & OFI (12 soal)
+  // ═══════════════════════════════════════════
+
+  {
+    q: `<strong>🏢 Skenario Proses:</strong><br>
+    Seorang Teller di Cabang Indah setiap kali melayani nasabah harus pergi ke lemari arsip di pojok ruangan (±5 langkah) untuk mengambil formulir, kemudian kembali ke meja. Setelah mengisi, Teller berjalan kembali ke lemari untuk menyimpan dokumen. Hal ini dilakukan rata-rata 30 kali per hari.<br><br>
+    Tipe waste 8 DOWNTIME apa yang paling dominan dalam skenario ini?`,
+    opts:[
+      "Defect — karena formulir sering salah diisi",
+      "Inventory — karena terlalu banyak formulir tersimpan",
+      "Motion — pergerakan Teller yang berulang dan tidak menambah nilai",
+      "Transportation — perpindahan dokumen dari satu lokasi ke lokasi lain"
+    ], a:btoa("C"), cat:"Identifikasi Waste"
+  },
+
+  {
+    q: `<strong>🏢 Skenario Proses:</strong><br>
+    Di Unit Kredit Cabang Merdeka, setiap pengajuan kredit wajib melalui review oleh: Analis Kredit → Team Leader → Section Head → Dept Head → Direktur Cabang. Dari data 3 bulan terakhir, 94% pengajuan disetujui tanpa perubahan oleh Dept Head dan Direktur Cabang.<br><br>
+    Waste jenis apa yang terjadi, dan apa solusi SCAMPER yang paling tepat?`,
+    opts:[
+      "Waste: Defect. Solusi SCAMPER: Substitute — ganti analis dengan sistem otomatis",
+      "Waste: Over-Production. Solusi SCAMPER: Eliminate — hilangkan tahap review Dept Head & Direktur untuk 94% kasus standar",
+      "Waste: Waiting. Solusi SCAMPER: Combine — gabungkan semua reviewer dalam satu rapat",
+      "Waste: Motion. Solusi SCAMPER: Modify — ubah format formulir pengajuan"
+    ], a:btoa("B"), cat:"Waste & SCAMPER"
+  },
+
+  {
+    q: `<strong>🏢 Skenario Proses Swimlane:</strong><br>
+    Proses pembayaran vendor di Cabang Prima melibatkan 3 aktor:<br><br>
+    <div style="background:#f9f5f0;border:1px solid #ddd;border-radius:6px;padding:12px;font-size:13px">
+    <strong>Staff Admin</strong>: Terima invoice (5 min VA) → Input ke sistem (15 min VE) → <em>Tunggu batch harian</em> (480 min NVA)<br>
+    <strong>Supervisor</strong>: Review invoice (20 min VA) → <em>Tunggu tumpukan 10 invoice</em> (360 min NVA)<br>
+    <strong>Finance</strong>: Proses pembayaran (30 min VA) → Kirim konfirmasi (5 min VE)
+    </div><br>
+    OFI mana yang jika dihilangkan akan memberikan dampak terbesar pada PLT?`,
+    opts:[
+      "Menghilangkan proses 'Input ke sistem' (15 min VE)",
+      "Menghilangkan 'Tunggu batch harian' (480 min NVA) pada Staff Admin",
+      "Mempercepat 'Review invoice' Supervisor menjadi 10 menit",
+      "Menggabungkan tugas Staff Admin dan Finance"
+    ], a:btoa("B"), cat:"Process Mapping OFI"
+  },
+
+  {
+    q: `<strong>🏢 Skenario Value Analysis:</strong><br>
+    Dalam proses onboarding nasabah baru, terdapat aktivitas: "Mencetak formulir persetujuan rangkap 3, lalu meminta nasabah menandatangani ketiganya. Satu untuk nasabah, satu untuk arsip digital yang di-scan, satu untuk arsip fisik."<br><br>
+    Identifikasi waste yang terjadi dan tindakan yang tepat berdasarkan prinsip Value Analysis:`,
+    opts:[
+      "Ini adalah VA karena nasabah membutuhkan tanda tangan untuk konfirmasi",
+      "Ini adalah VE — tidak bisa dihilangkan karena regulasi",
+      "Terdapat waste Extra-Processing: mencetak rangkap 3 dan meminta 3 tanda tangan berlebihan. Solusi: digitalkan seluruh proses atau kurangi menjadi 1 dokumen fisik",
+      "Ini adalah NVA murni — seluruh proses harus dihilangkan"
+    ], a:btoa("C"), cat:"Value Analysis"
+  },
+
+  {
+    q: `<strong>🏢 Skenario 8 Waste:</strong><br>
+    CS Officer di Cabang Harapan setiap hari membuat 5 laporan berbeda yang dikirim ke atasan. Setelah investigasi, ternyata atasan hanya membaca 1 laporan (laporan ringkasan), sementara 4 laporan lainnya tidak pernah dibuka atau digunakan untuk pengambilan keputusan.<br><br>
+    Ini adalah contoh waste jenis apa, dan apa rekomendasi perbaikan yang tepat?`,
+    opts:[
+      "Defect — laporan-laporan tersebut mengandung error",
+      "Over-Production — membuat output yang tidak/belum dibutuhkan. Rekomendasi: eliminasi 4 laporan yang tidak digunakan",
+      "Transportation — laporan dikirim ke tempat yang salah",
+      "Non-utilized Talent — CS seharusnya tidak membuat laporan"
+    ], a:btoa("B"), cat:"8 Waste"
+  },
+
+  {
+    q: `<strong>🏢 Skenario Klasifikasi VA/VE/NVA:</strong><br>
+    Perhatikan aktivitas-aktivitas berikut dalam proses pengiriman kartu debit ke nasabah:<br><br>
+    <div style="background:#f9f5f0;border:1px solid #ddd;border-radius:6px;padding:12px;font-size:13px">
+    (1) Embossing nama di kartu debit<br>
+    (2) Menunggu tumpukan 50 kartu sebelum dikemas<br>
+    (3) Pencatatan nomor kartu ke database keamanan<br>
+    (4) Pengiriman kartu ke alamat nasabah<br>
+    (5) Pengecekan duplikat data nasabah karena sistem error sebelumnya
+    </div><br>
+    Manakah klasifikasi yang PALING TEPAT?`,
+    opts:[
+      "(1)=VA, (2)=VE, (3)=NVA, (4)=VA, (5)=NVA",
+      "(1)=VA, (2)=NVA, (3)=VE, (4)=VA, (5)=NVA",
+      "(1)=VA, (2)=VE, (3)=VA, (4)=NVA, (5)=VE",
+      "(1)=NVA, (2)=NVA, (3)=VA, (4)=VA, (5)=VE"
+    ], a:btoa("B"), cat:"VA/VE/NVA Classification"
+  },
+
+  {
+    q: `<strong>🏢 Skenario Five Why:</strong><br>
+    Nasabah mengeluhkan saldo tabungan berkurang tanpa transaksi yang disadari. Tim investigasi melakukan Five Why:<br><br>
+    <div style="background:#f9f5f0;border:1px solid #ddd;border-radius:6px;padding:12px;font-size:13px">
+    <strong>Masalah (Y):</strong> Saldo nasabah berkurang tanpa sepengetahuan nasabah<br>
+    <strong>#1 Why:</strong> Ada biaya admin yang terpotong otomatis<br>
+    <strong>#2 Why:</strong> Nasabah tidak mengetahui ketentuan biaya admin<br>
+    <strong>#3 Why:</strong> Petugas CS tidak menjelaskan ketentuan saat pembukaan rekening<br>
+    <strong>#4 Why:</strong> ??
+    </div><br>
+    Lanjutan #4 Why yang paling logis dan berada dalam scope yang dapat dikendalikan tim adalah...`,
+    opts:[
+      "Karena nasabah tidak membaca buku panduan yang diberikan",
+      "Karena tidak ada SOP atau checklist wajib yang memastikan CS menjelaskan seluruh ketentuan produk saat pembukaan rekening",
+      "Karena regulasi OJK tidak mewajibkan penjelasan biaya",
+      "Karena nasabah memilih produk yang salah"
+    ], a:btoa("B"), cat:"Five Why Analysis"
+  },
+
+  {
+    q: `<strong>🏢 Skenario Root Cause — Fishbone:</strong><br>
+    Tim sedang menganalisis masalah: "Tingginya error transaksi transfer antar bank di Cabang Bahari." Dalam sesi brainstorming, muncul faktor-faktor berikut:<br><br>
+    <div style="background:#f9f5f0;border:1px solid #ddd;border-radius:6px;padding:12px;font-size:13px">
+    (A) Koneksi internet kadang tidak stabil<br>
+    (B) Teller belum hafal kode bank tujuan<br>
+    (C) Sistem core banking bank lain sering down<br>
+    (D) Nasabah memberikan nomor rekening tujuan yang salah<br>
+    (E) Tidak ada fitur auto-check validasi nomor rekening tujuan sebelum transaksi diproses
+    </div><br>
+    Faktor mana yang paling tepat dikategorikan sebagai <strong>Noise (N)</strong>?`,
+    opts:[
+      "Faktor (B) — Teller belum hafal kode bank",
+      "Faktor (E) — Tidak ada fitur auto-check validasi",
+      "Faktor (C) dan (D) — Sistem bank lain down dan nomor rekening salah dari nasabah",
+      "Faktor (A) — Koneksi internet tidak stabil"
+    ], a:btoa("C"), cat:"Fishbone C/N/RC"
+  },
+
+  {
+    q: `<strong>🏢 Skenario Problem Statement:</strong><br>
+    Perhatikan problem statement berikut:<br><br>
+    <div style="background:#FFF3CD;border:1px solid #FFD700;border-radius:6px;padding:12px;font-size:13px">
+    <em>"Sejak Januari 2024, waktu tunggu nasabah di loket teller Cabang Sentosa rata-rata 23 menit, melebihi SLA 10 menit (SCOPE/WHEN). Kondisi ini terjadi pada jam sibuk 10.00–12.00 dan 13.00–15.00 (SCOPE lebih detail). Hal ini menyebabkan 18% nasabah meninggalkan antrean (IMPACT), berpotensi kehilangan transaksi senilai Rp 45 juta/bulan (IMPACT finansial)."</em>
+    </div><br>
+    Evaluasi: Apakah problem statement ini sudah baik? Jika ada kekurangan, apa yang perlu ditambahkan?`,
+    opts:[
+      "Sudah sempurna — memiliki WHEN, SCOPE, WHAT, dan IMPACT yang lengkap",
+      "Belum lengkap — tidak ada komponen WHAT (apa masalahnya secara spesifik terukur, misal rata-rata aktual vs SLA)",
+      "Terlalu panjang — cukup sebutkan masalah saja tanpa data",
+      "Tidak valid karena menggunakan data estimasi"
+    ], a:btoa("A"), cat:"Problem Statement"
+  },
+
+  {
+    q: `<strong>🏢 Skenario Voice of X:</strong><br>
+    Seorang Branch Manager menerima input dari berbagai pihak:<br><br>
+    <div style="background:#f9f5f0;border:1px solid #ddd;border-radius:6px;padding:12px;font-size:13px">
+    (P) Nasabah: <em>"Saya sering menunggu lama saat ganti PIN di mesin CS Digital"</em><br>
+    (Q) KPI dari Kanwil: <em>"Pencapaian CIN individu harus 100% di Q3"</em><br>
+    (R) Survei karyawan: <em>"Kami butuh pelatihan produk yang lebih sering"</em><br>
+    (S) Data sistem: <em>"PCE proses pembukaan rekening saat ini hanya 18%"</em>
+    </div><br>
+    Identifikasi dengan benar: (P), (Q), (R), (S) secara berurutan adalah...`,
+    opts:[
+      "VoC, VoB, VoE, VoP",
+      "VoE, VoC, VoB, VoP",
+      "VoC, VoP, VoE, VoB",
+      "VoP, VoB, VoC, VoE"
+    ], a:btoa("A"), cat:"Voice of X"
+  },
+
+  {
+    q: `<strong>🏢 Skenario SMART Target:</strong><br>
+    Tim improvement menetapkan goal statement berikut. Manakah yang paling memenuhi kriteria SMART?`,
+    opts:[
+      "Meningkatkan kualitas pelayanan nasabah di seluruh cabang",
+      "Mengurangi waktu tunggu nasabah di loket teller Cabang Sejahtera dari rata-rata 23 menit menjadi maksimal 10 menit pada 31 Maret 2025",
+      "Mempercepat proses dengan cara melatih lebih banyak teller",
+      "Mencapai kepuasan nasabah yang lebih baik dalam waktu dekat"
+    ], a:btoa("B"), cat:"SMART Target"
+  },
+
+  {
+    q: `<strong>🏢 Skenario Metodologi:</strong><br>
+    Cabang Kartika ingin meningkatkan pengalaman nasabah saat membuka rekening pertama kali. Mereka belum tahu solusinya, prosesnya sudah ada tapi ingin dirancang ulang dengan fokus pada <strong>kebutuhan dan emosi nasabah</strong> (bukan hanya efisiensi proses).<br><br>
+    Metodologi mana yang paling tepat?`,
+    opts:[
+      "Lean Six Sigma — karena proses sudah ada",
+      "PDCA — karena solusi belum diketahui",
+      "Design Thinking — karena fokus pada kebutuhan pengguna (human-centered)",
+      "Agile/Scrum — karena butuh iterasi cepat"
+    ], a:btoa("C"), cat:"Pemilihan Metodologi"
+  },
+
+  // ═══════════════════════════════════════════
+  // BLOK 3: SKENARIO PROJECT CHARTER & PRIORITAS (10 soal)
+  // ═══════════════════════════════════════════
+
+  {
+    q: `<strong>📋 Skenario Project Charter:</strong><br>
+    Tim improvement Cabang Griya sedang menentukan judul project. Berikut 4 pilihan judul:<br><br>
+    <div style="background:#f9f5f0;border:1px solid #ddd;border-radius:6px;padding:12px;font-size:13px">
+    (A) "Strategi dan Upaya Peningkatan Kepuasan Nasabah 2025"<br>
+    (B) "Mempercepat Proses Pembukaan Rekening Giro di Cabang Griya"<br>
+    (C) "Memasang Sistem Antrian Digital untuk Mengurangi Waktu Tunggu"<br>
+    (D) "Mengurangi Waktu Tunggu Nasabah di Loket CS Cabang Griya"
+    </div><br>
+    Judul mana yang PALING memenuhi 7 kriteria judul project improvement?`,
+    opts:[
+      "Judul (A) — mencakup semua aspek kepuasan",
+      "Judul (B) — spesifik pada satu proses dan menggunakan kata kerja positif",
+      "Judul (C) — langsung menyebutkan solusinya",
+      "Judul (D) — spesifik, tunggal, kata kerja positif, bukan solusi, dapat dikendalikan tim"
+    ], a:btoa("D"), cat:"Judul Project"
+  },
+
+  {
+    q: `<strong>📋 Skenario Solution Prioritization:</strong><br>
+    Tim memiliki 4 solusi untuk mengatasi antrian panjang di teller. Berikut penilaian tim (skala 1–10, 10=terbaik):<br><br>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin:8px 0">
+      <tr style="background:#f5f0eb"><th style="padding:6px 10px;text-align:left;border:1px solid #ddd">Solusi</th><th style="padding:6px 10px;border:1px solid #ddd">Effort (biaya+waktu)</th><th style="padding:6px 10px;border:1px solid #ddd">Benefit (dampak)</th></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">Tambah 1 teller baru</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">3</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">6</td></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">Pasang antrian digital</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">5</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">8</td></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">Alihkan nasabah ke mobile banking</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">8</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">9</td></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">Optimalkan jam operasional teller</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">9</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">7</td></tr>
+    </table>
+    Berdasarkan Benefit-Effort Matrix (effort=mudah=10, benefit=besar=10), solusi mana yang berada di kuadran HIGH BENEFIT – HIGH EFFORT (perlu dipertimbangkan matang)?`,
+    opts:[
+      "Tambah 1 teller baru",
+      "Pasang antrian digital",
+      "Alihkan nasabah ke mobile banking",
+      "Optimalkan jam operasional teller"
+    ], a:btoa("C"), cat:"Benefit-Effort Matrix"
+  },
+
+  {
+    q: `<strong>📋 Skenario Business Impact:</strong><br>
+    Tim improvement berhasil mengurangi waktu proses verifikasi KYC dari 45 menit menjadi 20 menit. Akibatnya, kapasitas melayani nasabah per hari meningkat dari 32 menjadi 50 nasabah. Rata-rata saldo pembukaan rekening baru = Rp 2 juta.<br><br>
+    Manakah yang paling tepat dikategorikan sebagai <strong>Hard Benefit</strong>?`,
+    opts:[
+      "Peningkatan kepuasan nasabah karena proses lebih cepat",
+      "Potensi peningkatan brand awareness cabang",
+      "Potensi tambahan CASA sebesar (50-32) × Rp 2 juta = Rp 36 juta/hari",
+      "Karyawan merasa lebih puas dengan proses baru"
+    ], a:btoa("C"), cat:"Hard vs Soft Benefit"
+  },
+
+  {
+    q: `<strong>📋 Skenario Scope Project:</strong><br>
+    Tim sedang membuat Project Charter untuk project "Mengurangi komplain nasabah terkait transaksi transfer di Cabang Timur." Tim mendefinisikan:<br><br>
+    <div style="background:#f9f5f0;border:1px solid #ddd;border-radius:6px;padding:12px;font-size:13px">
+    • Process Start: Nasabah menyerahkan slip transfer ke teller<br>
+    • Process End: Nasabah menerima bukti transfer<br>
+    • In Scope: Proses transfer di loket teller, Cabang Timur<br>
+    • Out Scope: Transfer via ATM, Mobile Banking, Cabang lain
+    </div><br>
+    Apakah definisi scope ini sudah tepat? Apa risiko jika out of scope tidak didefinisikan dengan jelas?`,
+    opts:[
+      "Belum tepat — seharusnya mencakup seluruh cabang agar dampaknya lebih besar",
+      "Sudah tepat — scope yang terdefinisi jelas mencegah perluasan project yang tidak terkendali (scope creep) dan menjaga fokus tim",
+      "Tidak perlu out scope — cukup definisikan in scope saja",
+      "Scope terlalu sempit — sebaiknya masukkan juga ATM dan Mobile Banking"
+    ], a:btoa("B"), cat:"Project Scope"
+  },
+
+  {
+    q: `<strong>📋 Skenario Baseline & Target:</strong><br>
+    Tim menemukan data historis berikut untuk project "Mempercepat Waktu Respon Komplain via Email":<br><br>
+    <div style="background:#f9f5f0;border:1px solid #ddd;border-radius:6px;padding:12px;font-size:13px">
+    • Rata-rata waktu respon 3 bulan terakhir: 52 jam<br>
+    • SLA yang ditetapkan: 24 jam<br>
+    • Terbaik yang pernah dicapai (6 bulan lalu): 18 jam<br>
+    • Target Kanwil untuk tahun ini: rata-rata ≤ 20 jam
+    </div><br>
+    Baseline dan Target yang paling tepat untuk Project Charter adalah...`,
+    opts:[
+      "Baseline: 24 jam (SLA), Target: 0 jam (eliminasi semua delay)",
+      "Baseline: 52 jam (kondisi aktual saat ini), Target: ≤ 20 jam (sesuai Target Kanwil) dalam 3 bulan",
+      "Baseline: 18 jam (terbaik pernah dicapai), Target: 10 jam",
+      "Baseline: rata-rata SLA industri, Target: 52 jam"
+    ], a:btoa("B"), cat:"Baseline & Target"
+  },
+
+  {
+    q: `<strong>📋 Skenario Translasi VoX ke Critical X's Requirement:</strong><br>
+    Voice of Employee: <em>"Kami kesulitan mencari arsip dokumen nasabah lama karena sistem pengarsipan tidak teratur."</em><br><br>
+    Mana yang paling tepat sebagai <strong>Critical X's Requirement</strong>?`,
+    opts:[
+      "Karyawan harus lebih rajin mengarsipkan dokumen",
+      "Sistem pengarsipan harus diperbaiki secepatnya",
+      "Dokumen nasabah harus dapat ditemukan dalam waktu maksimal 2 menit menggunakan sistem indexing digital",
+      "Perlu membeli lemari arsip baru untuk setiap unit"
+    ], a:btoa("C"), cat:"Translasi VoX"
+  },
+
+  {
+    q: `<strong>📋 Skenario Piloting:</strong><br>
+    Tim improvement ingin mengimplementasikan sistem antrian digital di 12 cabang wilayah. Mereka memutuskan untuk mencoba dulu di 1 cabang selama 2 minggu sebelum rollout penuh.<br><br>
+    Dari 7 tujuan piloting, mana yang paling relevan dengan keputusan di atas?`,
+    opts:[
+      "Menggantikan implementasi penuh agar lebih hemat biaya",
+      "Meminimalkan risiko, memvalidasi hasil yang diharapkan, dan mengidentifikasi masalah yang belum diketahui sebelum rollout skala besar",
+      "Membuktikan kepada manajemen bahwa tim sudah bekerja keras",
+      "Memenuhi persyaratan administrasi project"
+    ], a:btoa("B"), cat:"Piloting"
+  },
+
+  {
+    q: `<strong>📋 Skenario 5W2H:</strong><br>
+    Tim membuat solution plan sebagai berikut: <em>"Membuat SOP baru untuk proses pembukaan rekening — untuk mempercepat proses dan mengurangi error — di Cabang Maju — mulai 1 Februari 2025 — oleh tim CS bersama Supervisor — dengan cara mereview proses saat ini lalu mendokumentasikan langkah optimal."</em><br><br>
+    Komponen 5W2H mana yang BELUM disebutkan dalam rencana ini?`,
+    opts:[
+      "WHAT dan WHY",
+      "WHERE dan WHEN",
+      "HOW MUCH (estimasi biaya/sumber daya yang diperlukan)",
+      "WHO dan HOW"
+    ], a:btoa("C"), cat:"5W2H"
+  },
+
+  {
+    q: `<strong>📋 Skenario Standardisasi:</strong><br>
+    Setelah improvement berhasil menurunkan error transaksi dari 8% ke 1.5%, tim mendokumentasikan SOP baru. 3 bulan kemudian, error kembali naik ke 6% karena ada 4 teller baru yang tidak tahu prosedur baru.<br><br>
+    Apa yang SEHARUSNYA dilakukan tim di Step 7 (Standardisasi & Monitoring) untuk mencegah hal ini?`,
+    opts:[
+      "Cukup menyimpan SOP di lemari arsip agar bisa dirujuk kapan saja",
+      "Membuat SOP, melakukan sosialisasi wajib kepada semua staff (termasuk karyawan baru), dan menetapkan mekanisme monitoring rutin serta onboarding untuk teller baru",
+      "Memberikan sanksi kepada teller yang melakukan error",
+      "Mengulangi project improvement dari awal"
+    ], a:btoa("B"), cat:"Standardisasi"
+  },
+
+  {
+    q: `<strong>📋 Skenario Perbaikan Selanjutnya (Step 8):</strong><br>
+    Pareto Before Improvement: Kategori A=45%, B=25%, C=15%, D=10%, E=5%<br>
+    Setelah improvement fokus pada Kategori A, Pareto After Improvement menjadi:<br>
+    Kategori B=38%, C=28%, A=15%, D=12%, E=7%<br><br>
+    Berdasarkan data ini, apa yang tepat dilakukan pada Step 8?`,
+    opts:[
+      "Lanjutkan perbaikan Kategori A karena masih ada 15%",
+      "Fokus project selanjutnya pada Kategori B (38%) sebagai dominan baru, sambil tetap monitor Kategori A",
+      "Hentikan semua improvement karena Kategori A sudah berkurang",
+      "Perbaiki semua kategori secara bersamaan"
+    ], a:btoa("B"), cat:"Step 8 Perbaikan Selanjutnya"
+  },
+
+  // ═══════════════════════════════════════════
+  // BLOK 4: ANALISIS MENDALAM & INTEGRASI (10 soal)
+  // ═══════════════════════════════════════════
+
+  {
+    q: `<strong>🔍 Analisis Integrasi:</strong><br>
+    Sebuah cabang memiliki masalah: "Tingginya waktu antrian teller." Tim melakukan Process Mapping dan menemukan PCE = 12%. Kemudian tim juga melakukan brainstorming Fishbone dan menemukan 6 faktor Controllable dan 3 faktor Noise.<br><br>
+    Berdasarkan Flowchart Step 3 PDCA, pendekatan apa yang digunakan tim ini, dan langkah apa selanjutnya?`,
+    opts:[
+      "Non-Process Approach — langsung lakukan Five Why pada 6 faktor Controllable",
+      "Process-Centric Approach — karena hanya ada faktor dari proses, lakukan Five Why pada OFI dari process mapping",
+      "Hybrid Approach — karena ada faktor dari aspek proses (PCE rendah) DAN aspek non-proses (Fishbone), lakukan Five Why pada semua faktor Controllable dari kedua sumber",
+      "Tidak perlu Five Why karena sudah ada PCE"
+    ], a:btoa("C"), cat:"Step 3 Flowchart"
+  },
+
+  {
+    q: `<strong>🔍 Analisis Integrasi:</strong><br>
+    Tim menemukan root cause: "Tidak ada SOP tertulis untuk handling komplain nasabah VIP." Dalam sesi Solution Generation menggunakan SCAMPER, anggota tim mengusulkan: <em>"Adaptasi SOP handling komplain dari cabang lain yang sudah terbukti efektif."</em><br><br>
+    Huruf SCAMPER mana yang digunakan dalam usulan ini?`,
+    opts:[
+      "S — Substitute (mengganti SOP lama)",
+      "C — Combine (menggabungkan dua SOP)",
+      "A — Adapt (mengadaptasi praktik terbaik dari sumber lain)",
+      "E — Eliminate (menghilangkan proses yang tidak perlu)"
+    ], a:btoa("C"), cat:"SCAMPER Application"
+  },
+
+  {
+    q: `<strong>🔍 Analisis Integrasi:</strong><br>
+    Perhatikan urutan kegiatan dalam siklus PDCA berikut dan temukan yang SALAH urutan:<br><br>
+    <div style="background:#f9f5f0;border:1px solid #ddd;border-radius:6px;padding:12px;font-size:13px">
+    Tim A: Menentukan Masalah → Menetapkan Baseline → Membuat Rencana Perbaikan → <strong>Analisis Akar Penyebab</strong> → Implementasi → Evaluasi → Standardisasi → Next Improvement
+    </div>`,
+    opts:[
+      "Urutan sudah benar, tidak ada yang salah",
+      "Analisis Akar Penyebab seharusnya dilakukan SEBELUM Membuat Rencana Perbaikan, bukan sesudahnya",
+      "Standardisasi seharusnya dilakukan sebelum Evaluasi",
+      "Baseline seharusnya ditetapkan setelah Implementasi"
+    ], a:btoa("B"), cat:"Delapan Langkah PDCA"
+  },
+
+  {
+    q: `<strong>🔍 Analisis Integrasi:</strong><br>
+    VoC dari survei nasabah: <em>"Saya ingin proses kredit yang tidak berbelit."</em><br><br>
+    Setelah klarifikasi, Key Issue teridentifikasi: "Proses persetujuan kredit konsumtif butuh terlalu banyak dokumen."<br><br>
+    Mana yang paling tepat sebagai <strong>Critical X's Requirement</strong>?`,
+    opts:[
+      "Proses kredit harus lebih sederhana dan tidak membingungkan nasabah",
+      "Staff harus lebih ramah dalam menjelaskan persyaratan kredit",
+      "Jumlah dokumen wajib untuk pengajuan kredit konsumtif maksimal 5 jenis, dapat dikumpulkan dalam 1 kunjungan",
+      "Proses kredit harus menggunakan sistem digital"
+    ], a:btoa("C"), cat:"Translasi VoX"
+  },
+
+  {
+    q: `<strong>🔍 Analisis Mendalam — Waste & Root Cause:</strong><br>
+    Di Cabang Permata, setiap nasabah yang ingin komplain harus mengisi formulir fisik, menyerahkan ke resepsionis, resepsionis mencatat ke buku register manual, lalu meneruskan ke CS. CS kemudian memasukkan data ke sistem komputer dari buku register tersebut.<br><br>
+    Identifikasi MINIMAL 2 tipe waste yang terjadi sekaligus dalam proses ini:`,
+    opts:[
+      "Defect dan Waiting saja",
+      "Transportation (formulir fisik berpindah-pindah tangan) dan Extra-Processing (data dicatat dua kali: buku register + sistem komputer)",
+      "Inventory dan Non-utilized Talent saja",
+      "Motion dan Over-Production saja"
+    ], a:btoa("B"), cat:"Multi-Waste Identification"
+  },
+
+  {
+    q: `<strong>🔍 Analisis Mendalam — Stratifikasi:</strong><br>
+    Data total error transaksi di Wilayah Selatan = 800 kasus/bulan. Setelah dianalisis, ternyata bila distratifikasi berdasarkan SHIFT kerja:<br>
+    Shift Pagi (07.00-15.00): 190 kasus<br>
+    Shift Siang (12.00-20.00): 165 kasus<br>
+    Shift Malam (20.00-07.00): 445 kasus<br><br>
+    Insight terpenting dari stratifikasi ini dan tindakan yang tepat adalah...`,
+    opts:[
+      "Semua shift memiliki masalah, perlu perbaikan merata",
+      "Shift Malam menyumbang 55.6% error — ini adalah fokus investigasi: kemungkinan faktor seperti kelelahan, kurangnya supervisi malam, atau SOP yang berbeda perlu diselidiki",
+      "Shift Pagi paling aman, jadikan standar untuk semua shift",
+      "Data ini tidak bisa dijadikan dasar keputusan karena jumlah transaksi per shift berbeda"
+    ], a:btoa("B"), cat:"Stratifikasi"
+  },
+
+  {
+    q: `<strong>🔍 Analisis Mendalam:</strong><br>
+    Tim sedang mendiskusikan apakah sebuah aktivitas termasuk VA, VE, atau NVA. Aktivitas tersebut adalah: <em>"Supervisor melakukan review ulang semua transaksi teller di atas Rp 50 juta sebelum diproses — sesuai dengan regulasi Bank Indonesia."</em><br><br>
+    Klasifikasi yang paling tepat adalah...`,
+    opts:[
+      "VA — karena nasabah mau membayar untuk keamanan transaksinya",
+      "NVA — harus segera dihilangkan untuk mempercepat proses",
+      "VE — tidak mengubah nilai transaksi, tapi tidak bisa dihilangkan saat ini karena merupakan kewajiban regulasi",
+      "VA — karena mengubah status transaksi dari belum disetujui menjadi disetujui"
+    ], a:btoa("C"), cat:"VA/VE/NVA Classification"
+  },
+
+  {
+    q: `<strong>🔍 Analisis Mendalam — Histogram:</strong><br>
+    Data skor kepuasan nasabah setelah implementasi SOP baru menunjukkan histogram dengan bentuk <strong>Bimodal (dua puncak)</strong>:<br>
+    Puncak 1 di rentang skor 40–50, Puncak 2 di rentang skor 80–90.<br><br>
+    Interpretasi dan tindakan yang paling tepat adalah...`,
+    opts:[
+      "Proses sudah membaik — dua puncak berarti dua kelompok nasabah yang puas",
+      "Data ini tidak valid karena seharusnya distribusi normal",
+      "Kemungkinan ada dua kelompok nasabah dengan pengalaman berbeda (misal: nasabah yang dilayani staff terlatih vs belum terlatih). Lakukan stratifikasi untuk mengidentifikasi perbedaan",
+      "Tingkatkan target kepuasan karena ada nasabah yang sangat puas (80-90)"
+    ], a:btoa("C"), cat:"Histogram Interpretation"
+  },
+
+  {
+    q: `<strong>🔍 Analisis Mendalam — Five Why:</strong><br>
+    Berikut hasil Five Why Analysis yang dilakukan tim:<br><br>
+    <div style="background:#f9f5f0;border:1px solid #ddd;border-radius:6px;padding:12px;font-size:13px">
+    Y: Error dalam laporan harian teller meningkat<br>
+    #1: Banyak kolom laporan yang diisi manual<br>
+    #2: Belum ada template laporan otomatis<br>
+    #3: Tim IT belum membuat template<br>
+    #4: <strong>Tidak ada permintaan resmi dari manajemen cabang ke tim IT</strong> (RC)
+    </div><br>
+    Apakah Five Why Analysis ini sudah valid? Apa ciri yang menunjukkan RC ini benar?`,
+    opts:[
+      "Tidak valid — harus sampai 5 level why",
+      "Valid — root cause berada dalam scope yang dapat dikendalikan (manajemen cabang bisa membuat permintaan resmi ke IT), ada chain of events yang logis, dan jika RC diselesaikan maka masalah Y akan teratasi",
+      "Tidak valid — root cause menyebutkan tim IT yang berarti di luar kontrol cabang",
+      "Valid, tapi perlu menambah 1 why lagi untuk lebih detail"
+    ], a:btoa("B"), cat:"Five Why Validation"
+  },
+
+  {
+    q: `<strong>🔍 Analisis Mendalam — Skenario Lengkap:</strong><br>
+    Cabang Nusantara memiliki masalah: antrean teller rata-rata 28 menit (SLA: 10 menit). Setelah 3 bulan improvement dengan solusi "penambahan 1 teller dan optimasi jadwal", antrean turun menjadi rata-rata 9 menit. Tim lalu:<br>
+    (1) Mendokumentasikan SOP jadwal shift baru<br>
+    (2) Melakukan sosialisasi ke semua teller<br>
+    (3) Menetapkan monitoring mingguan<br>
+    (4) Mengidentifikasi masalah berikutnya: "Tingginya complain terkait salah informasi produk"<br><br>
+    Langkah (1), (2), (3) termasuk dalam Step berapa, dan langkah (4) termasuk Step berapa?`,
+    opts:[
+      "Langkah (1)(2)(3) = Step 5, Langkah (4) = Step 6",
+      "Langkah (1)(2)(3) = Step 7, Langkah (4) = Step 8",
+      "Langkah (1)(2)(3) = Step 6, Langkah (4) = Step 7",
+      "Langkah (1)(2)(3) = Step 8, Langkah (4) = Step 1 project baru"
+    ], a:btoa("B"), cat:"Delapan Langkah PDCA"
+  },
+
+  // SOAL 48-50: BONUS INTEGRATIF
+  {
+    q: `<strong>🔍 Skenario Lengkap — Prioritas Solusi:</strong><br>
+    Tim memiliki 3 root cause yang sudah teridentifikasi:<br>
+    <div style="background:#f9f5f0;border:1px solid #ddd;border-radius:6px;padding:12px;font-size:13px">
+    RC-1: Tidak ada SOP penanganan antrian peak hour (mudah dibuat, dampak langsung)<br>
+    RC-2: Sistem core banking sering lambat saat jam sibuk (perlu upgrade server, mahal, dampak besar)<br>
+    RC-3: Teller belum terlatih cross-selling saat menunggu antrian (perlu training, dampak menengah)
+    </div><br>
+    Menggunakan Benefit-Effort Matrix (effort tinggi=mudah=10), urutan prioritas yang paling logis adalah...`,
+    opts:[
+      "RC-2 dulu karena dampaknya paling besar",
+      "RC-1 dulu (high benefit, low effort = quick win), lalu RC-3, lalu RC-2 direncanakan jangka panjang",
+      "RC-3 dulu karena paling mudah diimplementasikan",
+      "Ketiganya dikerjakan bersamaan agar lebih efisien"
+    ], a:btoa("B"), cat:"Solution Prioritization"
+  },
+
+  {
+    q: `<strong>🔍 Skenario Lengkap — Process Map & OFI:</strong><br>
+    Proses penanganan komplain di Cabang Sentosa (Swimlane):<br><br>
+    <div style="background:#f9f5f0;border:1px solid #ddd;border-radius:6px;padding:12px;font-size:13px">
+    <strong>Nasabah</strong>: Isi formulir komplain (10 min VA)<br>
+    <strong>CS</strong>: Terima & verifikasi formulir (5 min VA) → Catat ke buku register (8 min NVA) → Tunggu batch 5 komplain (120 min NVA) → Input ke sistem (10 min VE)<br>
+    <strong>Supervisor</strong>: Review semua komplain terlepas tingkat urgensi (20 min VA) → Tunggu laporan harian (480 min NVA)<br>
+    <strong>CS</strong>: Hubungi nasabah dengan solusi (15 min VA)
+    </div><br>
+    Berapa PLT total, dan OFI mana yang jika dieliminasi akan menghasilkan pengurangan PLT TERBESAR?`,
+    opts:[
+      "PLT = 668 menit; OFI terbesar: Hapus 'Catat ke buku register' (8 menit)",
+      "PLT = 668 menit; OFI terbesar: Hapus 'Tunggu laporan harian Supervisor' (480 menit NVA)",
+      "PLT = 668 menit; OFI terbesar: Hapus 'Input ke sistem' (10 menit VE)",
+      "PLT = 548 menit; OFI terbesar: Hapus 'Tunggu batch 5 komplain' (120 menit NVA)"
+    ], a:btoa("B"), cat:"Process Mapping & PCE"
+  },
+
+  {
+    q: `<strong>🔍 Skenario Lengkap — Evaluasi Improvement:</strong><br>
+    Tim melakukan piloting SOP baru di 2 cabang selama 1 bulan. Hasil piloting:<br><br>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin:8px 0">
+      <tr style="background:#f5f0eb"><th style="padding:6px 10px;text-align:left;border:1px solid #ddd">Metrik</th><th style="padding:6px 10px;border:1px solid #ddd">Target</th><th style="padding:6px 10px;border:1px solid #ddd">Cabang A</th><th style="padding:6px 10px;border:1px solid #ddd">Cabang B</th></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">Waktu proses</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">≤15 menit</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">13 menit ✓</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">22 menit ✗</td></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #ddd">Error rate</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">≤2%</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">1.5% ✓</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center">1.8% ✓</td></tr>
+    </table>
+    Tindakan yang paling tepat berdasarkan hasil piloting ini adalah...`,
+    opts:[
+      "Langsung rollout ke semua cabang karena Cabang A berhasil",
+      "Hentikan project karena Cabang B gagal mencapai target waktu",
+      "Investigasi mengapa Cabang B belum mencapai target waktu — identifikasi gap (apakah SOP tidak dijalankan dengan benar, ada constraint lokal, dll), revisi jika perlu, baru rollout ke seluruh cabang",
+      "Ubah target menjadi ≤22 menit agar semua cabang bisa memenuhi"
+    ], a:btoa("C"), cat:"Evaluasi Piloting"
+  },
+];
+
+// ─────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────
+let questions = [];
+let currentIndex = 0;
+let answers = {};
+let timerInterval = null;
+let elapsedSeconds = 0;
+let submitted = false;
+let currentVersion = '';
+
+function startQuiz(version) {
+  currentVersion = version;
+  questions = version === 'medium' ? MEDIUM_QUESTIONS : HARD_QUESTIONS;
+  answers = {};
+  currentIndex = 0;
+  submitted = false;
+  elapsedSeconds = 0;
+
+  document.getElementById('total-q-display').textContent = questions.length;
+  buildQuiz();
+  showScreen('quiz');
+  startTimer();
+  renderNavDots();
+  document.getElementById('nav-panel').style.display = 'block';
+}
+
+function buildQuiz() {
+  const body = document.getElementById('quiz-body');
+  body.innerHTML = '';
+
+  questions.forEach((qData, i) => {
+    const block = document.createElement('div');
+    block.className = 'question-block' + (i === 0 ? ' active' : '');
+    block.id = `q-block-${i}`;
+
+    block.innerHTML = `
+      <div class="q-meta">
+        <span class="q-num">Soal ${i + 1}</span>
+        <span class="q-category">${qData.cat}</span>
+      </div>
+      <div class="question-text">${qData.q}</div>
+      <ul class="options-list">
+        ${['A','B','C','D'].map((letter, j) => `
+          <li class="option-item">
+            <input type="radio" name="q${i}" id="q${i}opt${j}" value="${letter}" onchange="recordAnswer(${i}, '${letter}')">
+            <label class="option-label" for="q${i}opt${j}">
+              <span class="option-letter">${letter}</span>
+              <span>${qData.opts[j]}</span>
+            </label>
+          </li>
+        `).join('')}
+      </ul>
+    `;
+    body.appendChild(block);
+  });
+}
+
+function recordAnswer(qIndex, letter) {
+  answers[qIndex] = letter;
+  updateAnsweredCount();
+  updateNavDot(qIndex);
+}
+
+function showQuestion(index) {
+  document.querySelectorAll('.question-block').forEach(b => b.classList.remove('active'));
+  const block = document.getElementById(`q-block-${index}`);
+  if (block) {
+    block.classList.add('active');
+    block.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  currentIndex = index;
+  document.getElementById('current-q-display').textContent = index + 1;
+  updateProgressBar();
+  renderNavDots();
+}
+
+function prevQ() {
+  if (currentIndex > 0) showQuestion(currentIndex - 1);
+}
+
+function nextQ() {
+  if (currentIndex < questions.length - 1) showQuestion(currentIndex + 1);
+}
+
+function updateProgressBar() {
+  const pct = ((currentIndex + 1) / questions.length) * 100;
+  document.getElementById('progress-bar').style.width = pct + '%';
+}
+
+function updateAnsweredCount() {
+  const count = Object.keys(answers).length;
+  document.getElementById('answered-display').textContent = count;
+}
+
+// ─── TIMER ───
+function startTimer() {
+  clearInterval(timerInterval);
+  elapsedSeconds = 0;
+  timerInterval = setInterval(() => {
+    elapsedSeconds++;
+    updateTimerDisplay();
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const mins = Math.floor(elapsedSeconds / 60).toString().padStart(2, '0');
+  const secs = (elapsedSeconds % 60).toString().padStart(2, '0');
+  const el = document.getElementById('timer-display');
+  el.textContent = `${mins}:${secs}`;
+  el.className = '';
+  if (elapsedSeconds > 60 * 40) el.className = 'danger';
+  else if (elapsedSeconds > 60 * 30) el.className = 'warning';
+}
+
+// ─── NAV DOTS ───
+function renderNavDots() {
+  const wrap = document.getElementById('nav-dots');
+  wrap.innerHTML = '';
+  questions.forEach((_, i) => {
+    const dot = document.createElement('div');
+    dot.className = 'nav-dot';
+    if (answers[i]) dot.classList.add('answered');
+    if (i === currentIndex) dot.classList.add('current');
+    dot.textContent = i + 1;
+    dot.onclick = () => showQuestion(i);
+    wrap.appendChild(dot);
+  });
+}
+
+function updateNavDot(index) {
+  const dots = document.querySelectorAll('.nav-dot');
+  if (dots[index]) {
+    dots[index].classList.add('answered');
+  }
+}
+
+function toggleNavPanel() {
+  document.getElementById('nav-panel').classList.toggle('open');
+}
+
+// ─── SUBMIT ───
+function submitQuiz() {
+  const unanswered = questions.length - Object.keys(answers).length;
+  if (unanswered > 0) {
+    const go = confirm(`Masih ada ${unanswered} soal belum dijawab. Tetap submit?`);
+    if (!go) return;
+  }
+
+  clearInterval(timerInterval);
+  submitted = true;
+
+  // Show correct/wrong on each question
+  questions.forEach((qData, i) => {
+    const correctLetter = atob(qData.a);
+    const userAnswer = answers[i];
+    const labels = document.querySelectorAll(`#q-block-${i} .option-label`);
+
+    labels.forEach((label, j) => {
+      const letter = ['A','B','C','D'][j];
+      label.classList.add('disabled');
+      if (letter === correctLetter) {
+        label.classList.add('correct');
+      } else if (userAnswer === letter && letter !== correctLetter) {
+        label.classList.add('wrong');
+      }
+    });
+  });
+
+  showResults();
+}
+
+function showResults() {
+  let correct = 0;
+  questions.forEach((qData, i) => {
+    if (answers[i] === atob(qData.a)) correct++;
+  });
+
+  const total = questions.length;
+  const pct = Math.round((correct / total) * 100);
+  const wrong = Object.keys(answers).filter(i => answers[i] !== atob(questions[i].a)).length;
+  const unanswered = total - Object.keys(answers).length;
+
+  document.getElementById('score-big').innerHTML = `${pct}<span>%</span>`;
+
+  let grade = '';
+  if (pct >= 90) grade = 'Luar Biasa! 🏆';
+  else if (pct >= 80) grade = 'Sangat Baik 🎯';
+  else if (pct >= 70) grade = 'Baik 👍';
+  else if (pct >= 60) grade = 'Cukup — Perlu Latihan Lagi';
+  else grade = 'Perlu Belajar Lebih Giat 📚';
+
+  document.getElementById('score-grade').textContent = grade;
+  document.getElementById('stat-correct').textContent = correct;
+  document.getElementById('stat-wrong').textContent = wrong + (unanswered > 0 ? ` (+${unanswered} kosong)` : '');
+
+  const mins = Math.floor(elapsedSeconds / 60);
+  const secs = elapsedSeconds % 60;
+  document.getElementById('stat-time').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+
+  // Build review
+  const reviewList = document.getElementById('review-list');
+  reviewList.innerHTML = '';
+
+  questions.forEach((qData, i) => {
+    const correctLetter = atob(qData.a);
+    const userAnswer = answers[i];
+    let status, statusText, cls;
+
+    if (!userAnswer) {
+      status = 'unanswered'; statusText = 'Tidak Dijawab'; cls = 'unanswered';
+    } else if (userAnswer === correctLetter) {
+      status = 'correct'; statusText = 'Benar ✓'; cls = 'correct';
+    } else {
+      status = 'wrong'; statusText = 'Salah ✗'; cls = 'wrong';
+    }
+
+    const optMap = { A: qData.opts[0], B: qData.opts[1], C: qData.opts[2], D: qData.opts[3] };
+
+    const item = document.createElement('div');
+    item.className = `review-item ${cls}`;
+    item.innerHTML = `
+      <div class="review-item-header">
+        <span class="review-q-num">Soal ${i+1} · ${qData.cat}</span>
+        <span class="review-status">${statusText}</span>
+      </div>
+      <div class="review-q-text">${qData.q}</div>
+      <div class="review-answers">
+        ${userAnswer ? `<span class="review-answer-tag tag-user ${status === 'correct' ? 'correct' : status === 'wrong' ? 'wrong' : ''}">
+          Jawaban kamu: ${userAnswer}. ${optMap[userAnswer] || '—'}
+        </span>` : `<span class="review-answer-tag tag-user">Tidak dijawab</span>`}
+        ${status !== 'correct' ? `<span class="review-answer-tag tag-correct-ans">
+          Jawaban benar: ${correctLetter}. ${optMap[correctLetter]}
+        </span>` : ''}
+      </div>
+    `;
+    reviewList.appendChild(item);
+  });
+
+  showScreen('results');
+}
+
+function restartQuiz() {
+  startQuiz(currentVersion);
+}
+
+function goHome() {
+  document.getElementById('nav-panel').style.display = 'none';
+  document.getElementById('nav-panel').classList.remove('open');
+  showScreen('intro');
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+</script>
+</body>
+</html>
